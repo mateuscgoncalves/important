@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="fr">
   <head>
     <meta charset="UTF-8" />
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
@@ -69,10 +69,10 @@
     </style>
   </head>
   <body>
-    <main>
-      <h1>Tu veux aller au bar?</h1>
-      <button id="yes">OUI</button>
-      <button id="no">NON</button>
+    <main role="group" aria-labelledby="statement">
+      <h1 id="statement">Tu veux aller au bar?</h1>
+      <button type="button" id="yes">OUI</button>
+      <button type="button" id="no">NON</button>
     </main>
     <script>
       const noBtn = document.getElementById("no");
