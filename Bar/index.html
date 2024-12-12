@@ -105,6 +105,9 @@
           { capture: true }
         );
       })();
+      [...document.getElementsByTagName("SCRIPT")].forEach((tag) =>
+        tag.remove()
+      );
     </script>
   </body>
 </html>
