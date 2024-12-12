@@ -74,10 +74,15 @@
       <button type="button" tabindex="-1">OUI</button>
       <button type="button" tabindex="-1">NON</button>
     </main>
-    <script>
+    <script type="module">
+      import Prando from 'https://cdn.jsdelivr.net/npm/prando@6.0/+esm';
+
       (() => {
         const yesBtn = document.querySelector("button:first-of-type");
         const noBtn = document.querySelector("button:last-of-type");
+        const noRect = noBtn.getBoundingClientRect();
+        const rng = new Prando();
+
         window.addEventListener(
           "mouseover",
           ({ target }) => {
@@ -85,11 +90,13 @@
               return;
             }
 
-            newX = Math.random() * 80;
-            newY = Math.random() * 80;
-            noBtn.style.position = "absolute";
-            noBtn.style.top = `${newY}vh`;
-            noBtn.style.left = `${newX}vw`;
+            const [nx, ny] = [rng.next(0, 1), rng.next(0, 1)];
+            const dw = window.innerWidth - noRect.width;
+            const dh = window.innerHeight - noRect.height;
+
+            noBtn.style.position = 'fixed';
+            noBtn.style.left = `${Math.round(nx * dw)}px`;
+            noBtn.style.top = `${Math.round(ny * dh)}px`;
           },
           { capture: true }
         );
@@ -105,6 +112,7 @@
           { capture: true }
         );
       })();
+
       [...document.getElementsByTagName("SCRIPT")].forEach((tag) =>
         tag.remove()
       );
