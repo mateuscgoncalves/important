@@ -1,93 +1,124 @@
 <!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>IMPORTANT</title>
     <style>
-        *{
-            padding: 0;
-            margin: 0;
-            font-family: Verdana, Geneva, Tahoma, sans-serif;
-            gap: 1rem;
-        }
-        body{
-            max-width: 100vw;
-            max-height: 100vh;
-            background-color: #6a89cc;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            margin-top: 25vh;
-            color: white;
-            text-align: center;
-background-color: #92a5d7;
-opacity: 1;
-background-image:  linear-gradient(135deg, #a5b8e0 25%, transparent 25%), linear-gradient(225deg, #a5b8e0 25%, transparent 25%), linear-gradient(45deg, #a5b8e0 25%, transparent 25%), linear-gradient(315deg, #a5b8e0 25%, #92a5d7 25%);
-background-position:  40px 0, 40px 0, 0 0, 0 0;
-background-size: 80px 80px;
-background-repeat: repeat;
-        }
+      * {
+        padding: 0;
+        margin: 0;
+      }
 
-        h1 {
-            font-size: 3rem;
-        }
-        button, a{
-            width: 150px;
-            height: 50px;
-            border-radius: 25px;
-            outline: none;
-            border: none;
-            cursor: pointer;
-            font-weight: 600;
-            color: white;
-            background-color: #1e3799;
-        }
-        button:hover{
-            background-color: #0c2461
-        }
+      html {
+        background-color: #92a5d7;
+        background-image: linear-gradient(135deg, #a5b8e0 25%, transparent 25%),
+          linear-gradient(225deg, #a5b8e0 25%, transparent 25%),
+          linear-gradient(45deg, #a5b8e0 25%, transparent 25%),
+          linear-gradient(315deg, #a5b8e0 25%, #92a5d7 25%);
+        background-position: 40px 0, 40px 0, 0 0, 0 0;
+        background-size: 80px 80px;
+        background-repeat: repeat;
+        color: white;
+        font-family: Verdana, Geneva, Tahoma, sans-serif;
+        font-size: 16px;
+        overflow: hidden;
+      }
 
-        main {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            width: 400px;
-        }
-        div {
-            padding: 20px;
-        }
+      body {
+        position: fixed;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      main {
+        display: grid;
+        grid: auto-flow dense / 1fr 1fr;
+        gap: 1rem;
+      }
+
+      h1 {
+        grid-column: auto/span 2;
+        font-size: 3rem;
+        margin-bottom: 1.25rem;
+      }
+
+      button {
+        width: 150px;
+        height: 50px;
+        border-radius: 25px;
+        outline: none;
+        border: none;
+        cursor: pointer;
+        font-weight: 600;
+        color: white;
+        background-color: #1e3799;
+      }
+      button:hover {
+        background-color: #0c2461;
+      }
+      button:first-of-type {
+        justify-self: end;
+      }
+      button:last-of-type {
+        justify-self: start;
+      }
     </style>
-</head>
-<body>
-    <h1>Tu veux aller au bar?</h1>
-    <main>
-    <div>
-    <button id="yes">
-        OUI
-    </button>
-    </div>
-    <div id="no">
-        <button >
-        NON
-    </button>
-    </div>
+  </head>
+  <body>
+    <main role="group" aria-labelledby="statement">
+      <h1 id="statement">Tu veux aller au bar?</h1>
+      <button type="button" tabindex="-1">OUI</button>
+      <button type="button" tabindex="-1">NON</button>
     </main>
-    <script>
-        const noBtn = document.getElementById('no');
-         const yesBtn = document.getElementById('yes');
+    <script type="module">
+      import Prando from "https://cdn.jsdelivr.net/npm/prando@6.0/+esm";
 
-        noBtn.onmouseover = () => {
-            newX = Math.random() * 80;
-            newY = Math.random() * 80;
-            noBtn.style.position = 'absolute';
-            noBtn.style.top = `${newY}vh`;
-            noBtn.style.left = `${newX}vw`;
-        };
+      (() => {
+        const yesBtn = document.querySelector("button:first-of-type");
+        const noBtn = document.querySelector("button:last-of-type");
+        const noRect = noBtn.getBoundingClientRect();
+        const rng = new Prando();
 
-        yesBtn.onclick = () => {
-            window.location.href = "https://www.youtube.com/watch?v=XHFy3YWpRx8&pp=ygUYeW91IGdvdHRhIGEgZnJpZW5kIGluIG1l"; // Replace with your desired URL
-        };
+        window.addEventListener(
+          "mouseover",
+          ({ target }) => {
+            if (target !== noBtn) {
+              return;
+            }
+
+            const [nx, ny] = [rng.next(0, 1), rng.next(0, 1)];
+            const dw = window.innerWidth - noRect.width;
+            const dh = window.innerHeight - noRect.height;
+
+            noBtn.style.position = "fixed";
+            noBtn.style.left = `${Math.round(nx * dw)}px`;
+            noBtn.style.top = `${Math.round(ny * dh)}px`;
+          },
+          { capture: true }
+        );
+        window.addEventListener(
+          "click",
+          ({ target }) => {
+            if (target === noBtn) {
+              noBtn.innerText = "PAS NON";
+            } else if (target !== yesBtn) {
+              return;
+            }
+
+            window.location.href =
+              "https://www.youtube.com/watch?v=XHFy3YWpRx8&pp=ygUYeW91IGdvdHRhIGEgZnJpZW5kIGluIG1l";
+          },
+          { capture: true }
+        );
+      })();
+
+      [...document.getElementsByTagName("SCRIPT")].forEach((tag) =>
+        tag.remove()
+      );
     </script>
-</body>
+  </body>
 </html>
