@@ -71,25 +71,40 @@
   <body>
     <main role="group" aria-labelledby="statement">
       <h1 id="statement">Tu veux aller au bar?</h1>
-      <button type="button" id="yes">OUI</button>
-      <button type="button" id="no">NON</button>
+      <button type="button" tabindex="-1">OUI</button>
+      <button type="button" tabindex="-1">NON</button>
     </main>
     <script>
-      const noBtn = document.getElementById("no");
-      const yesBtn = document.getElementById("yes");
+      (() => {
+        const yesBtn = document.querySelector("button:first-of-type");
+        const noBtn = document.querySelector("button:last-of-type");
+        window.addEventListener(
+          "mouseover",
+          ({ target }) => {
+            if (target !== noBtn) {
+              return;
+            }
 
-      noBtn.onmouseover = () => {
-        newX = Math.random() * 80;
-        newY = Math.random() * 80;
-        noBtn.style.position = "absolute";
-        noBtn.style.top = `${newY}vh`;
-        noBtn.style.left = `${newX}vw`;
-      };
-
-      yesBtn.onclick = () => {
-        window.location.href =
-          "https://www.youtube.com/watch?v=XHFy3YWpRx8&pp=ygUYeW91IGdvdHRhIGEgZnJpZW5kIGluIG1l"; // Replace with your desired URL
-      };
+            newX = Math.random() * 80;
+            newY = Math.random() * 80;
+            noBtn.style.position = "absolute";
+            noBtn.style.top = `${newY}vh`;
+            noBtn.style.left = `${newX}vw`;
+          },
+          { capture: true }
+        );
+        window.addEventListener(
+          "click",
+          ({ target }) => {
+            if (target !== yesBtn) {
+              return;
+            }
+            window.location.href =
+              "https://www.youtube.com/watch?v=XHFy3YWpRx8&pp=ygUYeW91IGdvdHRhIGEgZnJpZW5kIGluIG1l";
+          },
+          { capture: true }
+        );
+      })();
     </script>
   </body>
 </html>
