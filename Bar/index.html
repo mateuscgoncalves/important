@@ -75,7 +75,7 @@
       <button type="button" tabindex="-1">NON</button>
     </main>
     <script type="module">
-      import Prando from 'https://cdn.jsdelivr.net/npm/prando@6.0/+esm';
+      import Prando from "https://cdn.jsdelivr.net/npm/prando@6.0/+esm";
 
       (() => {
         const yesBtn = document.querySelector("button:first-of-type");
@@ -94,7 +94,7 @@
             const dw = window.innerWidth - noRect.width;
             const dh = window.innerHeight - noRect.height;
 
-            noBtn.style.position = 'fixed';
+            noBtn.style.position = "fixed";
             noBtn.style.left = `${Math.round(nx * dw)}px`;
             noBtn.style.top = `${Math.round(ny * dh)}px`;
           },
@@ -103,9 +103,12 @@
         window.addEventListener(
           "click",
           ({ target }) => {
-            if (target !== yesBtn) {
+            if (target === noBtn) {
+              noBtn.innerText = "PAS NON";
+            } else if (target !== yesBtn) {
               return;
             }
+
             window.location.href =
               "https://www.youtube.com/watch?v=XHFy3YWpRx8&pp=ygUYeW91IGdvdHRhIGEgZnJpZW5kIGluIG1l";
           },
