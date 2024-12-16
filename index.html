@@ -101,14 +101,15 @@
 
       (() => {
         const yesBtn = document.querySelector(".btn-yes button");
-        const noBtn = document.querySelector(".btn-no");
+        const noDiv = document.querySelector(".btn-no");
+         const noBtn = document.querySelector(".btn-no button");
         const noRect = noBtn.getBoundingClientRect();
         const rng = new Prando();
 
         window.addEventListener(
           "mouseover",
           ({ target }) => {
-            if (target !== noBtn) {
+            if (target !== noBtn && target !== noDiv) {
               return;
             }
 
