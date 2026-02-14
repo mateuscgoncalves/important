@@ -1,0 +1,733 @@
+<!doctype html>
+<html lang="pt-br">
+    <head>
+        <meta charset="UTF-8" />
+        <title>Super Mario Paris - Audio Final</title>
+        <style>
+            body {
+                margin: 0;
+                overflow: hidden;
+                background: #202020;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                height: 100vh;
+                font-family: 'Courier New', Courier, monospace;
+            }
+            canvas {
+                border: 4px solid #fff;
+                box-shadow: 0 0 20px rgba(0,0,0,0.5);
+                background-color: #87CEEB;
+            }
+            #instructions {
+                position: absolute;
+                top: 10px;
+                color: #aaa;
+                text-align: center;
+                pointer-events: none;
+                font-size: 14px;
+            }
+        </style>
+    </head>
+    <body>
+        <div id="instructions">
+            Arquivos: background.mp3, jump.wav, gameover.wav<br>
+            A música começará quando o Mario entrar.
+        </div>
+        <canvas id="gameCanvas"></canvas>
+        <script>
+            const canvas = document.getElementById("gameCanvas");
+            const ctx = canvas.getContext("2d");
+
+            canvas.width = 800;
+            canvas.height = 600;
+
+            // =================================================================
+            // 0. AUDIO HANDLER (WAV + MP3 MISTURADOS)
+            // =================================================================
+            class AudioHandler {
+                constructor() {
+                    // MÚSICA DE FUNDO (.mp3)
+                    this.bgMusic = new Audio('background.mp3'); 
+                    this.bgMusic.loop = true; 
+                    this.bgMusic.volume = 0.3; 
+
+                    // EFEITOS SONOROS (.wav)
+                    this.jumpSound = new Audio('./audio/jump.wav'); // <--- AGORA É WAV
+                    this.jumpSound.volume = 0.4;
+
+                    this.gameOverSound = new Audio('./audio/gameover.wav'); // <--- AGORA É WAV
+                    this.gameOverSound.volume = 0.5;
+                }
+
+                playMusic() {
+                    // Tenta tocar (pode falhar se não houve interação do usuário ainda)
+                    this.bgMusic.play().catch(e => console.log("Aguardando interação..."));
+                }
+
+                stopMusic() {
+                    this.bgMusic.pause();
+                    this.bgMusic.currentTime = 0; 
+                }
+
+                playJump() {
+                    // Zera o tempo para permitir pulos rápidos consecutivos
+                    this.jumpSound.currentTime = 0;
+                    this.jumpSound.play().catch(e => {});
+                }
+
+                playGameOver() {
+                    this.stopMusic();
+                    this.gameOverSound.play().catch(e => {});
+                }
+            }
+
+            // =================================================================
+            // 1. INPUT HANDLER
+            // =================================================================
+            class InputHandler {
+                constructor() {
+                    this.keys = [];
+                    window.addEventListener("keydown", (e) => {
+                        if (
+                            (e.key === "ArrowDown" ||
+                                e.key === "ArrowUp" ||
+                                e.key === "ArrowLeft" ||
+                                e.key === "ArrowRight" ||
+                                e.key === " ") &&
+                            this.keys.indexOf(e.key) === -1
+                        ) {
+                            this.keys.push(e.key);
+                        }
+                    });
+                    window.addEventListener("keyup", (e) => {
+                        if (
+                            e.key === "ArrowDown" ||
+                            e.key === "ArrowUp" ||
+                            e.key === "ArrowLeft" ||
+                            e.key === "ArrowRight" ||
+                            e.key === " "
+                        ) {
+                            this.keys.splice(this.keys.indexOf(e.key), 1);
+                        }
+                    });
+                }
+            }
+
+            // =================================================================
+            // 2. CLASSES DE AMBIENTE
+            // =================================================================
+            class Sky {
+                constructor(gameWidth, gameHeight) {
+                    this.gameWidth = gameWidth;
+                    this.gameHeight = gameHeight;
+                    this.image = new Image();
+                    this.image.src = "cloud.png"; 
+                    this.clouds = [];
+                    this.speedModifier = 0.1; 
+                    this.cloudCount = 6; 
+                    for (let i = 0; i < this.cloudCount; i++) this.clouds.push(this.createCloud(true));
+                }
+                createCloud(randomX = false) {
+                    const scale = Math.random() * 0.5 + 0.5; 
+                    return {
+                        x: randomX ? Math.random() * this.gameWidth : this.gameWidth + 10,
+                        y: Math.random() * (this.gameHeight * 0.4), 
+                        width: 100 * scale, height: 60 * scale,
+                        speed: Math.random() * 0.2 + 0.1, 
+                    };
+                }
+                update(playerSpeed) {
+                    this.clouds.forEach((c) => { c.x -= c.speed + playerSpeed * this.speedModifier; });
+                    this.clouds = this.clouds.filter((c) => c.x + c.width > -100);
+                    while (this.clouds.length < this.cloudCount) this.clouds.push(this.createCloud());
+                }
+                draw(context) {
+                    context.fillStyle = "#87CEEB";
+                    context.fillRect(0, 0, this.gameWidth, this.gameHeight);
+                    if (!this.image.complete) return;
+                    this.clouds.forEach((c) => context.drawImage(this.image, c.x, c.y, c.width, c.height));
+                }
+            }
+
+            class Background {
+                constructor(gameWidth, gameHeight) {
+                    this.gameWidth = gameWidth;
+                    this.gameHeight = gameHeight;
+                    this.image = new Image();
+                    this.image.src = "sprites_env.png";
+                    this.speedModifier = 0.2;
+                    this.tileSize = 144;
+                    this.scale = 1.2;
+                    this.minGap = 300; 
+                    this.monuments = [
+                        { name: "louvre", gridX: 0, gridY: 5, gridW: 11, gridH: 3 },
+                        { name: "eiffel", gridX: 5, gridY: 0, gridW: 1, gridH: 2 },
+                        { name: "arco", gridX: 11, gridY: 1, gridW: 2, gridH: 2 },
+                        { name: "moulin", gridX: 0, gridY: 0, gridW: 4, gridH: 3 },
+                        { name: "sacre", gridX: 6, gridY: 0, gridW: 5, gridH: 3 },
+                    ];
+                    this.initMonuments();
+                }
+                initMonuments() {
+                    let currentX = 200;
+                    this.monuments.forEach((m) => {
+                        m.drawW = m.gridW * this.tileSize * this.scale;
+                        m.drawH = m.gridH * this.tileSize * this.scale;
+                        m.x = currentX;
+                        currentX += m.drawW + this.minGap;
+                    });
+                }
+                update(speed) {
+                    let realSpeed = speed * this.speedModifier;
+                    this.monuments.forEach((m) => { m.x -= realSpeed; });
+                    this.monuments.forEach((m) => {
+                        if (m.x + m.drawW < -200) {
+                            let furthestX = -9999;
+                            let lastWidth = 0;
+                            this.monuments.forEach((other) => { if (other.x > furthestX) { furthestX = other.x; lastWidth = other.drawW; }});
+                            m.x = furthestX + lastWidth + this.minGap;
+                        }
+                    });
+                }
+                draw(context) {
+                    if (!this.image.complete) return;
+                    this.monuments.forEach((m) => {
+                        if (m.x + m.drawW > -100 && m.x < this.gameWidth + 100) {
+                            const destY = this.gameHeight - 50 - m.drawH + 50;
+                            context.drawImage(this.image, m.gridX * this.tileSize, m.gridY * this.tileSize, m.gridW * this.tileSize, m.gridH * this.tileSize, m.x, destY, m.drawW, m.drawH);
+                        }
+                    });
+                }
+            }
+
+            class FillerBackground {
+                constructor(gameWidth, gameHeight) {
+                    this.gameWidth = gameWidth;
+                    this.gameHeight = gameHeight;
+                    this.image = new Image();
+                    this.image.src = "sprites_buildings.png";
+                    this.speedModifier = 0.5; 
+                    this.tileSize = 72;
+                    this.scale = 1.2;
+                    this.buildingTypes = [{ sx: 0, sy: 0, sw: 16 * 72, sh: 3 * 72 }, { sx: 0, sy: 4 * 72, sw: 16 * 72, sh: 3 * 72 }];
+                    this.buildings = [];
+                    this.initBuildings();
+                }
+                initBuildings() {
+                    let currentX = 0;
+                    while (currentX < this.gameWidth * 3) {
+                        this.addNewBuilding(currentX);
+                        let last = this.buildings[this.buildings.length - 1];
+                        currentX += last.width; 
+                    }
+                }
+                addNewBuilding(x) {
+                    let type = this.buildingTypes[Math.floor(Math.random() * this.buildingTypes.length)];
+                    let w = type.sw * this.scale;
+                    let h = type.sh * this.scale;
+                    let y = this.gameHeight - 48 - h; 
+                    this.buildings.push({ img: this.image, x: x, y: y, sx: type.sx, sy: type.sy, sw: type.sw, sh: type.sh, width: w, height: h });
+                }
+                update(speed) {
+                    let realSpeed = speed * this.speedModifier;
+                    this.buildings.forEach((b) => (b.x -= realSpeed));
+                    if (this.buildings[0].x + this.buildings[0].width < 0) {
+                        this.buildings.shift();
+                        let last = this.buildings[this.buildings.length - 1];
+                        this.addNewBuilding(last.x + last.width);
+                    }
+                }
+                draw(context) {
+                    if (!this.image.complete) return;
+                    this.buildings.forEach((b) => {
+                        if (b.x + b.width > 0 && b.x < this.gameWidth) {
+                            context.drawImage(b.img, b.sx, b.sy, b.sw, b.sh, b.x, b.y, b.width, b.height);
+                        }
+                    });
+                }
+            }
+
+            class Ground {
+                constructor(gameWidth, gameHeight) {
+                    this.gameWidth = gameWidth;
+                    this.gameHeight = gameHeight;
+                    this.image = new Image();
+                    this.image.src = "street_ground.png";
+                    this.width = 2400;
+                    this.height = 50;
+                    this.x = 0;
+                }
+                update(speed) {
+                    this.x -= speed;
+                    if (this.x <= -this.width) this.x = 0;
+                }
+                draw(context) {
+                    if (!this.image.complete) {
+                        context.fillStyle = "#5D9668";
+                        context.fillRect(0, this.gameHeight - this.height, this.gameWidth, this.height);
+                        return;
+                    }
+                    let pattern = context.createPattern(this.image, "repeat");
+                    context.fillStyle = pattern;
+                    context.save();
+                    context.translate(this.x, 0);
+                    context.fillRect(-this.x, this.gameHeight - this.height, this.gameWidth, this.height);
+                    context.restore();
+                }
+            }
+
+            // =================================================================
+            // 3. CLASSE PEACH
+            // =================================================================
+            class Peach {
+                constructor(gameWidth, gameHeight) {
+                    this.gameWidth = gameWidth;
+                    this.gameHeight = gameHeight;
+                    this.image = new Image();
+                    this.image.src = "sprite_peach.png"; 
+
+                    this.spriteW = 72;   
+                    this.spriteH = 144;  
+                    this.frameX = 0;
+                    this.maxFrame = 8;   
+                    this.frameTimer = 0;
+                    this.frameInterval = 100; 
+                    this.width = 72;     
+                    this.height = 144;   
+                    this.x = -100; 
+                    this.y = this.gameHeight - 50 - this.height + 10; 
+                    this.speed = 1.5; 
+                }
+                update(deltaTime) {
+                    this.x += this.speed;
+                    this.frameTimer += deltaTime;
+                    if (this.frameTimer > this.frameInterval) {
+                        if (this.frameX < this.maxFrame - 1) this.frameX++;
+                        else this.frameX = 0;
+                        this.frameTimer = 0;
+                    }
+                }
+                draw(context) {
+                    if (!this.image.complete) return;
+                    context.drawImage(this.image, this.frameX * this.spriteW, 0, this.spriteW, this.spriteH, this.x, this.y, this.width, this.height);
+                }
+            }
+
+            // =================================================================
+            // 4. CLASSE PLAYER (MARIO)
+            // =================================================================
+            class Player {
+                constructor(gameWidth, gameHeight) {
+                    this.gameWidth = gameWidth;
+                    this.gameHeight = gameHeight;
+                    this.spriteWidth = 144;
+                    this.spriteHeight = 144;
+                    this.width = 100;
+                    this.height = 100;
+                    this.image = new Image();
+                    this.image.src = "player_brazil_sheet.png";
+                    this.states = {
+                        IDLE: { row: 0, maxFrame: 3, fps: 0 },
+                        RUNNING: { row: 1, maxFrame: 7, fps: 20 },
+                        JUMPING: { row: 2, maxFrame: 1, fps: 0 },
+                        CROUCHING: { row: 3, maxFrame: 0, fps: 0 },
+                    };
+                    this.currentState = this.states.IDLE;
+                    this.frameX = 0;
+                    this.frameY = 0;
+                    this.maxFrame = 0;
+                    this.frameTimer = 0;
+                    this.fps = 20;
+                    this.frameInterval = 1000 / this.fps;
+                    this.x = -150; // Começa fora
+                    this.y = this.gameHeight - this.height - 50;
+                    this.vx = 0;
+                    this.vy = 0;
+                    this.weight = 1;
+                    this.speed = 0;
+                    this.maxSpeed = 6;
+                    this.facingRight = true;
+                }
+                
+                update(input, deltaTime, audio) {
+                    let newState = this.states.IDLE;
+                    
+                    if (!this.onGround()) {
+                        newState = this.states.JUMPING;
+                        if (this.vy < 0) this.frameX = 0; else this.frameX = 1;
+                    } else if (input.keys.includes("ArrowDown")) {
+                        newState = this.states.CROUCHING;
+                        this.speed = 0;
+                    } else if (input.keys.includes("ArrowRight") || input.keys.includes("ArrowLeft")) {
+                        newState = this.states.RUNNING;
+                        if (input.keys.includes("ArrowRight")) {
+                            this.speed = this.maxSpeed;
+                            this.facingRight = true;
+                        } else {
+                            this.speed = -this.maxSpeed;
+                            this.facingRight = false;
+                        }
+                    } else {
+                        this.speed = 0;
+                        newState = this.states.IDLE;
+                    }
+
+                    // TOCA SOM AO PULAR
+                    if (input.keys.includes("ArrowUp") && this.onGround() && newState !== this.states.CROUCHING) {
+                        this.vy -= 18;
+                        if (audio) audio.playJump(); 
+                    }
+
+                    if (this.frameY !== newState.row) {
+                        this.frameY = newState.row;
+                        this.maxFrame = newState.maxFrame;
+                        this.fps = newState.fps;
+                        this.frameInterval = 1000 / (this.fps || 60);
+                        this.frameX = 0;
+                        this.frameTimer = 0;
+                    }
+                    this.x += this.speed;
+                    if (this.x < 0) this.x = 0;
+
+                    this.y += this.vy;
+                    if (!this.onGround()) {
+                        this.vy += this.weight;
+                    } else {
+                        this.vy = 0;
+                    }
+                    if (this.y > this.gameHeight - this.height - 50) {
+                        this.y = this.gameHeight - this.height - 50;
+                    }
+                    if (this.fps > 0) {
+                        if (this.frameTimer > this.frameInterval) {
+                            this.frameX < this.maxFrame ? this.frameX++ : (this.frameX = 0);
+                            this.frameTimer = 0;
+                        } else {
+                            this.frameTimer += deltaTime;
+                        }
+                    }
+                }
+                draw(context) {
+                    if (this.facingRight) {
+                        context.drawImage(this.image, this.frameX * this.spriteWidth, this.frameY * this.spriteHeight, this.spriteWidth, this.spriteHeight, this.x, this.y, this.width, this.height);
+                    } else {
+                        context.save();
+                        context.translate(this.x + this.width, this.y);
+                        context.scale(-1, 1);
+                        context.drawImage(this.image, this.frameX * this.spriteWidth, this.frameY * this.spriteHeight, this.spriteWidth, this.spriteHeight, 0, 0, this.width, this.height);
+                        context.restore();
+                    }
+                }
+                onGround() { return this.y >= this.gameHeight - this.height - 50; }
+            }
+
+            // =================================================================
+            // 5. CLASSES INIMIGAS
+            // =================================================================
+            class Enemy {
+                constructor(gameWidth, gameHeight) {
+                    this.gameWidth = gameWidth;
+                    this.gameHeight = gameHeight;
+                    this.markedForDeletion = false;
+                    this.image = new Image();
+                    this.image.src = "sprites_enemies.png";
+                    this.gridSize = 72; 
+                    this.spriteW = 144; 
+                    this.spriteH = 72;  
+                    this.frameTimer = 0;
+                }
+                update(deltaTime, speed) {
+                    this.x -= this.speedX + speed;
+                    if (this.x < -this.width) this.markedForDeletion = true;
+                    this.frameTimer += deltaTime;
+                    if (this.frameTimer > this.frameInterval) {
+                        if (this.frameX < this.maxFrame - 1) this.frameX++;
+                        else this.frameX = 0;
+                        this.frameTimer = 0;
+                    }
+                }
+                draw(context) {
+                    if (!this.image.complete) return;
+                    context.drawImage(this.image, this.frameX * this.spriteW, this.frameY * this.gridSize, this.spriteW, this.spriteH, this.x, this.y, this.width, this.height);
+                }
+            }
+
+            class Pigeon extends Enemy {
+                constructor(gameWidth, gameHeight) {
+                    super(gameWidth, gameHeight);
+                    this.frameY = 0; 
+                    this.spriteH = 144; 
+                    this.maxFrame = 6;
+                    this.width = 90;
+                    this.height = 90;
+                    this.x = this.gameWidth;
+                    this.y = Math.random() * (this.gameHeight - 300) + 50;
+                    this.speedX = 1.5; 
+                    this.angle = 0;
+                    this.frameInterval = 100;
+                }
+                update(deltaTime, speed) {
+                    super.update(deltaTime, speed);
+                    this.angle += 0.05;
+                    this.y += Math.sin(this.angle) * 2;
+                }
+            }
+            class Snail extends Enemy {
+                constructor(gameWidth, gameHeight) {
+                    super(gameWidth, gameHeight);
+                    this.frameY = 2; 
+                    this.spriteH = 72; 
+                    this.maxFrame = 7;
+                    this.width = 80;
+                    this.height = 40;
+                    this.x = this.gameWidth;
+                    this.y = this.gameHeight - 48 - this.height;
+                    this.speedX = 0.5; 
+                    this.frameInterval = 150;
+                }
+            }
+            class Rat extends Enemy {
+                constructor(gameWidth, gameHeight) {
+                    super(gameWidth, gameHeight);
+                    this.frameY = 3;
+                    this.spriteH = 72; 
+                    this.maxFrame = 8;
+                    this.width = 80;
+                    this.height = 40;
+                    this.x = this.gameWidth;
+                    this.y = this.gameHeight - 50 - this.height;
+                    this.speedX = 2; 
+                    this.frameInterval = 100;
+                }
+            }
+            class Waiter extends Enemy {
+                constructor(gameWidth, gameHeight) {
+                    super(gameWidth, gameHeight);
+                    this.frameY = 4;
+                    this.spriteH = 144; 
+                    this.maxFrame = 7;
+                    this.width = 80;
+                    this.height = 110;
+                    this.x = this.gameWidth;
+                    this.y = this.gameHeight - 50 - this.height + 10;
+                    this.speedX = 2.5; 
+                    this.frameInterval = 120;
+                }
+            }
+            class Gargoyle extends Enemy {
+                constructor(gameWidth, gameHeight) {
+                    super(gameWidth, gameHeight);
+                    this.frameY = 6;
+                    this.spriteH = 144; 
+                    this.maxFrame = 8;
+                    this.width = 100;
+                    this.height = 100;
+                    this.x = this.gameWidth;
+                    this.y = 50;
+                    this.speedX = 1.5; 
+                    this.frameInterval = 120;
+                    this.angle = 0;
+                    this.diveSpeed = 0.01; 
+                }
+                update(deltaTime, speed) {
+                    super.update(deltaTime, speed);
+                    this.angle += this.diveSpeed;
+                    if (this.angle < Math.PI) {
+                        this.y = 50 + Math.sin(this.angle) * 350;
+                    } else {
+                        this.y = 50;
+                    }
+                }
+            }
+
+            // =================================================================
+            // 6. CLASSE GAME
+            // =================================================================
+            class Game {
+                constructor(width, height) {
+                    this.width = width;
+                    this.height = height;
+
+                    this.audio = new AudioHandler(); 
+
+                    this.sky = new Sky(this.width, this.height);
+                    this.background = new Background(this.width, this.height);
+                    this.fillerBackground = new FillerBackground(this.width, this.height);
+                    this.ground = new Ground(this.width, this.height);
+                    this.player = new Player(this.width, this.height);
+                    this.input = new InputHandler();
+                    
+                    this.peach = new Peach(this.width, this.height);
+                    
+                    this.introState = 1; 
+
+                    this.enemies = [];
+                    this.enemyTimer = 0;
+                    this.enemyInterval = 1000; 
+
+                    this.gameOver = false;
+                }
+
+                update(deltaTime) {
+                    if (this.gameOver) return;
+
+                    // FASE 1: PEACH
+                    if (this.introState === 1) {
+                        this.peach.update(deltaTime);
+                        this.sky.update(0.5);
+                        this.background.update(0.2); 
+                        this.fillerBackground.update(0);
+                        this.ground.update(0);
+
+                        if (this.peach.x > this.width + 50) {
+                            this.introState = 2; 
+                        }
+                        return; 
+                    }
+
+                    // FASE 2: MARIO ENTRA
+                    if (this.introState === 2) {
+                        this.sky.update(0.5);
+                        this.background.update(0.2); 
+                        this.fillerBackground.update(0);
+                        this.ground.update(0);
+
+                        this.player.x += 2; 
+                        this.player.frameY = 1; 
+                        this.player.frameTimer += deltaTime;
+                        if (this.player.frameTimer > this.player.frameInterval) {
+                             this.player.frameX < 7 ? this.player.frameX++ : this.player.frameX = 0;
+                             this.player.frameTimer = 0;
+                        }
+
+                        if (this.player.x >= 100) {
+                            this.player.x = 100;
+                            this.player.frameY = 0; 
+                            this.introState = 0; 
+                            
+                            // *** TOCA MÚSICA DE FUNDO ***
+                            this.audio.playMusic();
+                        }
+                        return;
+                    }
+
+                    // MODO JOGO
+                    this.player.update(this.input, deltaTime, this.audio);
+
+                    if (this.player.x > this.width / 2 && this.player.speed > 0) {
+                        this.player.x = this.width / 2;
+                        this.sky.update(this.player.speed);
+                        this.background.update(this.player.speed);
+                        this.fillerBackground.update(this.player.speed);
+                        this.ground.update(this.player.speed);
+                        this.enemies.forEach((enemy) => enemy.update(deltaTime, this.player.speed));
+                    } else {
+                        this.sky.update(0.5);
+                        this.background.update(0.2);
+                        this.fillerBackground.update(0);
+                        this.ground.update(0);
+                        this.enemies.forEach((enemy) => enemy.update(deltaTime, 0));
+                    }
+
+                    if (this.enemies.length === 0) {
+                        this.enemyTimer += deltaTime;
+                        if (this.enemyTimer > this.enemyInterval) {
+                            this.addEnemy();
+                            this.enemyTimer = 0;
+                        }
+                    }
+
+                    this.enemies = this.enemies.filter((enemy) => !enemy.markedForDeletion);
+                    this.enemies.forEach((enemy) => {
+                        if (
+                            this.player.x + 30 < enemy.x + enemy.width - 20 &&
+                            this.player.x + this.player.width - 40 > enemy.x + 20 &&
+                            this.player.y + 30 < enemy.y + enemy.height - 10 &&
+                            this.player.y + this.player.height > enemy.y + 20
+                        ) {
+                            this.gameOver = true;
+                            // *** TOCA GAME OVER ***
+                            this.audio.playGameOver(); 
+                        }
+                    });
+                }
+
+                draw(context) {
+                    this.sky.draw(context);
+                    this.background.draw(context);
+                    this.fillerBackground.draw(context);
+                    this.ground.draw(context);
+                    
+                    if (this.introState === 1) {
+                        this.peach.draw(context);
+                    } else if (this.introState === 2) {
+                        this.player.draw(context);
+                    } else {
+                        this.enemies.forEach((enemy) => enemy.draw(context));
+                        this.player.draw(context);
+                    }
+
+                    if (this.gameOver) {
+                        context.textAlign = "center";
+                        context.fillStyle = "black";
+                        context.font = "40px sans-serif";
+                        context.fillText("C'EST FINI!", this.width / 2, this.height / 2);
+                        context.fillStyle = "red";
+                        context.fillText("C'EST FINI!", this.width / 2 + 2, this.height / 2 + 2);
+                        
+                        context.font = "20px sans-serif";
+                        context.fillStyle = "white";
+                        context.fillText("Pressione ESPAÇO para reiniciar", this.width / 2, this.height / 2 + 40);
+                    }
+                }
+
+                addEnemy() {
+                    const random = Math.random();
+                    if (random < 0.2) {
+                        this.enemies.push(new Snail(this.width, this.height));
+                    } else if (random < 0.4) {
+                        this.enemies.push(new Rat(this.width, this.height));
+                    } else if (random < 0.6) {
+                        this.enemies.push(new Pigeon(this.width, this.height));
+                    } else if (random < 0.8) {
+                        this.enemies.push(new Waiter(this.width, this.height));
+                    } else {
+                        this.enemies.push(new Gargoyle(this.width, this.height));
+                    }
+                }
+
+                restart() {
+                    this.player.x = 100;
+                    this.player.y = this.height - this.player.height - 50;
+                    this.player.frameY = 0; 
+                    this.enemies = [];
+                    this.enemyTimer = 0;
+                    this.gameOver = false;
+                    this.introState = 0; 
+                    this.audio.playMusic(); 
+                }
+            }
+
+            const game = new Game(canvas.width, canvas.height);
+            let lastTime = 0;
+
+            window.addEventListener('keydown', e => {
+                if (e.key === ' ' && game.gameOver) {
+                    game.restart();
+                }
+            });
+
+            function animate(timeStamp) {
+                const deltaTime = timeStamp - lastTime;
+                lastTime = timeStamp;
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                game.update(deltaTime);
+                game.draw(ctx);
+                requestAnimationFrame(animate);
+            }
+
+            animate(0);
+        </script>
+    </body>
+</html>

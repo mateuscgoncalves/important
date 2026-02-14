@@ -1,29 +1,26 @@
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Très important</title>
+    <title>Very Important</title>
     <style>
       * {
         padding: 0;
         margin: 0;
+        box-sizing: border-box;
       }
 
       html {
-        background-color: #92a5d7;
-        background-image: linear-gradient(135deg, #a5b8e0 25%, transparent 25%),
-          linear-gradient(225deg, #a5b8e0 25%, transparent 25%),
-          linear-gradient(45deg, #a5b8e0 25%, transparent 25%),
-          linear-gradient(315deg, #a5b8e0 25%, #92a5d7 25%);
-        background-position: 40px 0, 40px 0, 0 0, 0 0;
-        background-size: 80px 80px;
-        background-repeat: repeat;
+        background-image: url("heart.jpg"); 
+        background-color: #ffdde1;
+        background-size: cover;
+        background-position: center;
         color: white;
-        font-family: Verdana, Geneva, Tahoma, sans-serif;
-        font-size: 16px;
+        font-family: 'Verdana', sans-serif;
         overflow: hidden;
+        height: 100vh;
       }
 
       body {
@@ -34,114 +31,221 @@
         justify-content: center;
       }
 
+      #mobile-blocker {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        background-color: #202020;
+        z-index: 9999;
+        display: none;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        padding: 20px;
+      }
+
+      #mobile-blocker h2 {
+        font-size: 2rem;
+        margin-bottom: 15px;
+        color: #DE3163;
+      }
+      
+      #mobile-blocker p {
+        font-size: 1.2rem;
+        color: white;
+      }
+
+      @media (max-width: 1024px), (hover: none) {
+        #mobile-blocker {
+            display: flex;
+        }
+        #overlay, main {
+            display: none !important;
+        }
+      }
+
+      #overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: #DE3163;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        z-index: 1000;
+        cursor: pointer;
+        transition: opacity 0.5s ease;
+      }
+      
+      #overlay h1 {
+        font-size: 4rem;
+        margin-bottom: 20px;
+        animation: heartbeat 1.5s infinite;
+      }
+      
+      #overlay p {
+        font-size: 1.5rem;
+        color: white;
+      }
+
+      @keyframes heartbeat {
+        0% { transform: scale(1); }
+        50% { transform: scale(1.1); }
+        100% { transform: scale(1); }
+      }
+
       main {
         display: flex;
         flex-direction: column;
         align-items: center;
         justify-content: center;
+        opacity: 0;
+        transition: opacity 1s ease;
       }
 
-      h1 {
-        grid-column: auto/span 2;
+      h1.question {
         font-size: 3rem;
-        margin-bottom: 1.25rem;
+        margin-bottom: 2rem;
         text-align: center;
+        text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+        line-height: 1.2;
       }
 
       .btn-group {
-        width: 364px;
         display: flex;
+        gap: 20px;
+        position: relative;
+        height: 100px;
+        width: 100%;
+        justify-content: center;
       }
-      .btn-container {
-        padding: 16px;
-      }
-
 
       button {
-        width: 150px;
-        height: 50px;
-        border-radius: 25px;
-        outline: none;
+        width: 180px;
+        height: 60px;
+        border-radius: 30px;
         border: none;
         cursor: pointer;
-        font-weight: 600;
+        font-size: 1.2rem;
+        font-weight: bold;
         color: white;
-        background-color: #1e3799;
+        background-color: #DE3163;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        transition: transform 0.2s;
       }
+
       button:hover {
-        background-color: #0c2461;
-      }
-      .btn-no {
-        transition-duration: 100ms;
+        background-color: #c41e4c;
+        transform: scale(1.05);
       }
 
-      .btn-no button{
-        cursor: none;
+      .btn-no-wrapper {
+        position: relative;
+        width: 180px;
+        height: 60px;
       }
-      .btn-no:hover {
+      
+      #noBtn {
+        position: absolute;
+        top: 0;
+        left: 0;
+        background-color: #555;
+      }
+      
+      #noBtn:hover {
+        background-color: #333;
+      }
 
-        opacity: 0;
-      }
     </style>
   </head>
   <body>
-    <main role="group" aria-labelledby="statement">
-      <h1 id="statement">Tu veux aller au bar?</h1>
+
+    <div id="mobile-blocker">
+        <h2>Desktop Only</h2>
+        <p>This experience requires a mouse and a larger screen.<br>Please open this on a computer.</p>
+    </div>
+
+    <div id="overlay">
+        <h1>💌</h1>
+        <p>A letter for Eleonora...</p>
+        <p style="font-size: 1rem; margin-top: 10px;">(Click to open)</p>
+    </div>
+
+    <main>
+      <h1 class="question">
+        Eleonora<br>
+        Will You Be My Valentine?
+      </h1>
       <div class="btn-group">
-        <div class="btn-container btn-yes">
-          <button type="button" tabindex="-1">OUI</button>
-        </div>
-        <div class="btn-container btn-no">
-          <button tabindex="-1">NON</button>
+        <button id="yesBtn">For sure!</button>
+        
+        <div class="btn-no-wrapper">
+            <button id="noBtn">I'll think about it</button>
         </div>
       </div>
     </main>
+
     <script type="module">
       import Prando from "https://cdn.jsdelivr.net/npm/prando@6.0/+esm";
 
-      (() => {
-        const yesBtn = document.querySelector(".btn-yes button");
-        const noDiv = document.querySelector(".btn-no");
-         const noBtn = document.querySelector(".btn-no button");
-        const noRect = noBtn.getBoundingClientRect();
-        const rng = new Prando();
+      const jumpSound = new Audio("./audio/jump.wav");
+      jumpSound.volume = 0.4;
 
-        window.addEventListener(
-          "mouseover",
-          ({ target }) => {
-            if (target !== noBtn && target !== noDiv) {
-              return;
-            }
+      const overlay = document.getElementById('overlay');
+      const mainContent = document.querySelector('main');
+      const yesBtn = document.getElementById('yesBtn');
+      const noBtn = document.getElementById('noBtn');
+      const rng = new Prando();
 
-            const [nx, ny] = [rng.next(0, 1), rng.next(0, 1)];
-            const dw = window.innerWidth - noRect.width;
-            const dh = window.innerHeight - noRect.height;
+      overlay.addEventListener('click', () => {
+        jumpSound.play().then(() => {
+            jumpSound.pause();
+            jumpSound.currentTime = 0;
+        }).catch(e => console.log(e));
 
-            noBtn.style.position = "fixed";
-            noBtn.style.left = `${Math.round(nx * dw)}px`;
-            noBtn.style.top = `${Math.round(ny * dh)}px`;
-          },
-          { capture: true }
-        );
-        window.addEventListener(
-          "click",
-          ({ target }) => {
-            if (target === noBtn) {
-              noBtn.innerText = "PAS NON";
-            } else if (target !== yesBtn) {
-              return;
-            }
+        overlay.style.opacity = '0';
+        setTimeout(() => {
+            overlay.style.display = 'none';
+            mainContent.style.opacity = '1';
+        }, 500);
+      });
 
-            window.location.href =
-              "https://www.youtube.com/watch?v=XHFy3YWpRx8&pp=ygUYeW91IGdvdHRhIGEgZnJpZW5kIGluIG1l";
-          },
-          { capture: true }
-        );
-      })();
+      noBtn.addEventListener('mouseover', () => {
+        jumpSound.currentTime = 0;
+        jumpSound.play().catch(e => {});
 
-      [...document.getElementsByTagName("SCRIPT")].forEach((tag) =>
-        tag.remove()
-      );
+        const screenWidth = window.innerWidth;
+        const screenHeight = window.innerHeight;
+        const btnRect = noBtn.getBoundingClientRect();
+
+        const margin = 50;
+        
+        const newX = Math.random() * (screenWidth - btnRect.width - margin * 2) + margin;
+        const newY = Math.random() * (screenHeight - btnRect.height - margin * 2) + margin;
+
+        noBtn.style.position = 'fixed';
+        noBtn.style.left = `${newX}px`;
+        noBtn.style.top = `${newY}px`;
+        
+        const phrases = ["No way!", "Catch me!", "Too slow!", "Try again!", "Nope!", "Not today!"];
+        noBtn.innerText = phrases[Math.floor(Math.random() * phrases.length)];
+      });
+
+      yesBtn.addEventListener('click', () => {
+        alert('I have a surprise for you!!!');
+        window.location.href = "./game.html";
+      });
+
+      noBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        noBtn.dispatchEvent(new Event('mouseover'));
+      });
     </script>
   </body>
 </html>
