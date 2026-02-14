@@ -945,7 +945,7 @@
 					if (this.gameOver) return;
 
 					// --- [NOVO] CONDIÇÃO DE VITÓRIA ---
-					if (this.score >= 5 && this.introState === 0) {
+					if (this.score >= 20 && this.introState === 0) {
 						this.introState = 3; // Ativa Modo Final
 						this.enemies = []; // Remove inimigos imediatamente
 						this.coins = [];
