@@ -173,17 +173,16 @@
 
     <div id="overlay">
         <h1>💌</h1>
-        <p>A letter for Eleonora...</p>
-        <p style="font-size: 1rem; margin-top: 10px;">(Click to open)</p>
+        <p>Un petit mot pour Joseph</p>
+        <p style="font-size: 1rem; margin-top: 10px;">(Clique pour ouvrir) </p>
     </div>
 
     <main>
       <h1 class="question">
-        Eleonora<br>
-        Will You Be My Valentine?
+        Joseph<br> est ce que tu m'aimes toujours ? 
       </h1>
       <div class="btn-group">
-        <button id="yesBtn">For sure!</button>
+        <button id="yesBtn">Bien sur !</button>
         
         <div class="btn-no-wrapper">
             <button id="noBtn">I'll think about it</button>
@@ -233,7 +232,7 @@
         noBtn.style.left = `${newX}px`;
         noBtn.style.top = `${newY}px`;
         
-        const phrases = ["No way!", "Catch me!", "Too slow!", "Try again!", "Nope!", "Not today!"];
+        const phrases = ["Je vais y réfléchir", "Pourquoi tu as voulu cliquer sur non ?", "Je ne t'aimerais plus jamais", "Vas te faire"];
         noBtn.innerText = phrases[Math.floor(Math.random() * phrases.length)];
       });
 
